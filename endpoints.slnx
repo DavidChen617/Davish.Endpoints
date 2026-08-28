@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Endpoints.SourceGenerator/Endpoints.SourceGenerator.csproj" />
+    <Project Path="src/Endpoints/Endpoints.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Endpoints.UnitTests/Endpoints.UnitTests.csproj" />
+    <Project Path="tests/Endpoints.IntegrationTests/Endpoints.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

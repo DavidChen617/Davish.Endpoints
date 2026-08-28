@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Davish.Endpoints</RootNamespace>
+    <AssemblyName>Davish.Endpoints</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>David Chen</Authors>
+    <Copyright>Copyright (c) 2026 David Chen</Copyright>
+    <Version>1.0.0</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/DavidChen617/Davish.Endpoints</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/DavidChen617/Davish.Endpoints</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>endpoint;restful;minimal-api;source-generation</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <!--
+    只拉進來讓它「被建置」,不當 Analyzer 掛在這個專案自己身上(否則會對這個
+    專案自己的編譯結果跑一次生成器,生出一個沒用的空 AddEndpoints(),
+    並跟任何同時參考本專案 + 自己也掛生成器的消費端產生方法名稱衝突)。
+    真正讓生成器生效的,是下面把它的 DLL 塞進 analyzers/dotnet/cs,
+    NuGet 消費端安裝套件後才會自動把它當 Analyzer 載入。
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Endpoints.SourceGenerator\Endpoints.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="AddGeneratorToPackage" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\Endpoints.SourceGenerator\Endpoints.SourceGenerator.csproj"
+             Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" ItemName="_GeneratorAssemblyPath" />
+    </MSBuild>
+
+    <ItemGroup>
+      <None Include="@(_GeneratorAssemblyPath)"
+            Pack="true"
+            PackagePath="analyzers/dotnet/cs"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+
+</Project>
