@@ -1,9 +1,18 @@
 namespace Davish.Endpoints;
 
+/// <summary>
+/// Provides <see cref="WebApplication"/> extensions for mapping the endpoints and groups registered
+/// by the generated <c>AddEndpoints()</c>.
+/// </summary>
 public static class DependencyInjection
 {
     extension(WebApplication app)
     {
+        /// <summary>
+        /// Resolves every registered <see cref="IGroupEndpoint"/> and <see cref="IEndpoint"/> and maps
+        /// them onto <paramref name="app"/>, configuring parent groups before their children and before
+        /// the endpoints that belong to them.
+        /// </summary>
         public void MapEndpoints()
         {
             var groups = app.Services.GetServices<IGroupEndpoint>().ToList();
@@ -27,7 +36,14 @@ public static class DependencyInjection
                 if (parentInterfaces is not null)
                 {
                     var parentType = parentInterfaces.GetGenericArguments()[0];
-                    var parentGroup = groups.First(g => g.GetType() == parentType);
+                    var parentGroup = groups.FirstOrDefault(g => g.GetType() == parentType);
+
+                    if (parentGroup is null)
+                        throw new InvalidOperationException(
+                            $"Endpoint group '{groupType.Name}' declares a parent group '{parentType.Name}' " +
+                            $"via IGroupEndpoint<{parentType.Name}>, but no instance of '{parentType.Name}' " +
+                            "was registered. Make sure it is registered as an IGroupEndpoint (e.g. via AddEndpoints()).");
+
                     ConfigureGroup(parentGroup);
                     parentBuilder = builders[parentType];
                 }
@@ -42,7 +58,14 @@ public static class DependencyInjection
             {
                 var groupInterface = endpoint.GetType().GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEndpoint<>));
                 var groupType = groupInterface.GetGenericArguments()[0];
-                endpoint.AddRoutes(builders[groupType]);
+
+                if (!builders.TryGetValue(groupType, out var builder))
+                    throw new InvalidOperationException(
+                        $"Endpoint '{endpoint.GetType().Name}' declares group '{groupType.Name}' " +
+                        $"via IEndpoint<{groupType.Name}>, but no instance of '{groupType.Name}' was registered. " +
+                        "Make sure it is registered as an IGroupEndpoint (e.g. via AddEndpoints()).");
+
+                endpoint.AddRoutes(builder);
             }
         }
     }
