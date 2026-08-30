@@ -19,6 +19,12 @@ public class PingEndpoint : IEndpoint<ApiGroup>
         => endpoints.MapGet("ping", () => "pong");
 }
 
+public class HealthEndpoint : IEndpoint
+{
+    public void AddRoutes(IEndpointRouteBuilder endpoints)
+        => endpoints.MapGet("health", () => "ok");
+}
+
 // Deliberately not wired to any DI registration below, so these can stand in for a
 // group/endpoint whose declared parent/group was never registered.
 public class MissingParentGroup : IGroupEndpoint
@@ -57,6 +63,24 @@ public class EndpointMappingTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("pong", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task MapEndpoints_Registers_Route_With_No_Group_At_Root()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddEndpoints();
+
+        await using var app = builder.Build();
+        app.MapEndpoints();
+        await app.StartAsync();
+
+        var client = app.GetTestClient();
+        var response = await client.GetAsync("/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("ok", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

@@ -56,14 +56,23 @@ public static class DependencyInjection
 
             foreach (var endpoint in endpoints)
             {
-                var groupInterface = endpoint.GetType().GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEndpoint<>));
-                var groupType = groupInterface.GetGenericArguments()[0];
+                var groupInterface = endpoint.GetType().GetInterfaces()
+                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEndpoint<>));
 
-                if (!builders.TryGetValue(groupType, out var builder))
-                    throw new InvalidOperationException(
-                        $"Endpoint '{endpoint.GetType().Name}' declares group '{groupType.Name}' " +
-                        $"via IEndpoint<{groupType.Name}>, but no instance of '{groupType.Name}' was registered. " +
-                        "Make sure it is registered as an IGroupEndpoint (e.g. via AddEndpoints()).");
+                IEndpointRouteBuilder builder = app;
+
+                if (groupInterface is not null)
+                {
+                    var groupType = groupInterface.GetGenericArguments()[0];
+
+                    if (!builders.TryGetValue(groupType, out var groupBuilder))
+                        throw new InvalidOperationException(
+                            $"Endpoint '{endpoint.GetType().Name}' declares group '{groupType.Name}' " +
+                            $"via IEndpoint<{groupType.Name}>, but no instance of '{groupType.Name}' was registered. " +
+                            "Make sure it is registered as an IGroupEndpoint (e.g. via AddEndpoints()).");
+
+                    builder = groupBuilder;
+                }
 
                 endpoint.AddRoutes(builder);
             }
